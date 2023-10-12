@@ -24,8 +24,8 @@ app.config['JWT_SECRET_KEY'] = 'Team_leader_254'
 expiration_time = timedelta(days=1)
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = expiration_time
 jwt = JWTManager(app)
-CORS(app, origins='http://eduxperts.net')
-socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='http://eduxperts.net')
+CORS(app, origins='https://eduxperts.net')
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='https://eduxperts.net')
 
 
 connected_clients = set()
