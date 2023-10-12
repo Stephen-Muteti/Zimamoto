@@ -625,7 +625,8 @@ def get_user(user_id):
     try:
         connection = create_connection()
         if connection:
-            cur = connection.cursor(dictionary=True)
+            cursor = connection.cursor(cursor_factory=RealDictCursor)
+
             cur.execute('SELECT name, email, phone, role FROM users WHERE id = %s', (user_id,))
             user_data = cur.fetchone()
             cur.close()
