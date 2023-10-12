@@ -625,7 +625,7 @@ def get_user(user_id):
     try:
         connection = create_connection()
         if connection:
-            cursor = connection.cursor(cursor_factory=RealDictCursor)
+            cur = connection.cursor(cursor_factory=RealDictCursor)
 
             cur.execute('SELECT name, email, phone, role FROM users WHERE id = %s', (user_id,))
             user_data = cur.fetchone()
@@ -1013,7 +1013,8 @@ def get_brigade(brigade_id):
     try:
         connection = create_connection()
         if connection:
-            cur = connection.cursor(dictionary=True)
+            cur = connection.cursor(cursor_factory=RealDictCursor)
+
             cur.execute('SELECT OperatorEmail, Latitude, Longitude, Status, Availability FROM brigades WHERE BrigadeID = %s', (brigade_id,))
             brigade_data = cur.fetchone()
             cur.close()
