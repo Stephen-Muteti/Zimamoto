@@ -15,11 +15,8 @@ import requests
 from math import radians, sin, cos, sqrt, atan2
 from operator import itemgetter
 import psycopg2
-from psycopg2.extras import RealDictCursor
-from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
 app.config['JWT_SECRET_KEY'] = 'Team_leader_254'
 expiration_time = timedelta(days=1)
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = expiration_time
@@ -47,25 +44,24 @@ def on_disconnect():
 def send_data_to_clients(data):
     socketio.emit('fire_update', data, namespace='/')
 
+db_config = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '',
+    'database': 'zimamoto'
+}
 
 
 def create_connection():
-    DATABASE_URL = 'postgres://jtpmguzfpuskqd:1c0eddfb3cc33f00d9e2ad36d5d36c48076721fb70b1f5ed6d235f314f420760@ec2-44-213-151-75.compute-1.amazonaws.com:5432/d4bfs85umeq0bq'
-
-    try:
-        connection = psycopg2.connect(DATABASE_URL, sslmode='require')
-        return connection
-
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL:", error)
-
+    connection = mysql.connector.connect(**db_config)
+    return connection
 
 
 def create_table(connection):
     cur = connection.cursor()
     cur.execute('''
         CREATE TABLE IF NOT EXISTS fire_reports (
-          id SERIAL PRIMARY KEY,
+          id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255),
           phoneNumber VARCHAR(20),
           email VARCHAR(255),
@@ -280,10 +276,10 @@ def receive_report():
             cur.execute('''
                 INSERT INTO fire_reports (name, phoneNumber, email, location_address, obtained_latitude, obtained_longitude) 
                 VALUES (%s, %s, %s, %s, %s, %s)
-                RETURNING id
             ''', (name, phone_number, email, location_address, obtained_latitude, obtained_longitude))
 
-            # Fetch the last inserted ID from the result
+
+            cur.execute("SELECT LAST_INSERT_ID()")
             last_inserted_id = cur.fetchone()[0]
             
             
@@ -447,6 +443,10 @@ def get_reports():
         print("Error:", e)
         return jsonify({'error': 'An error occurred. We are fixing this soon.'}), 500
 
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed
 
 def is_phone_registered(connection, phone):
     try:
@@ -482,13 +482,12 @@ def isValidPassword(password):
     is_min_length = len(password) >= 8
     return has_uppercase and has_lowercase and has_digit and has_special_character and is_min_length
 
-
 def create_users_table(connection):
     try:
         cursor = connection.cursor()
         create_table_query = '''
             CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 email VARCHAR(255) NOT NULL UNIQUE,
                 phone VARCHAR(15) NOT NULL,
@@ -506,21 +505,11 @@ def create_users_table(connection):
 def update_users_table(data):
     socketio.emit('update_users', data, namespace='/')
 
-
-# Hash the password using bcrypt
-def hash_password(password):
-    return bcrypt.generate_password_hash(password).decode('utf-8')
-
-# Verify the password using bcrypt
-def verify_password(password, hashed_password):
-    return bcrypt.check_password_hash(hashed_password, password)
-
-# Add a new user
 @app.route('/adduser', methods=['POST'])
 @jwt_required()
 def add_user():
     try:
-        current_user = get_jwt_identity()
+        current_user = get_jwt_identity()        
         data = request.json
         name = data['name']
         email = data['email']
@@ -530,7 +519,7 @@ def add_user():
 
         if not (current_user['role'] == 'administrator'):
             return jsonify({'error': 'You cannot perform this action.'}), 403
-
+        
         if not name:
             return jsonify({'error': 'Please enter your name.'}), 400
         elif not email:
@@ -547,18 +536,21 @@ def add_user():
             return jsonify({'error': 'Please enter a password.'}), 400
         elif len(password) < 8:
             return jsonify({'error': 'Password must be at least 8 characters long.'}), 400
+        elif not isValidPassword(password):
+            return jsonify({'error': 'Invalid password format.'}), 400
 
         connection = create_connection()
         if connection:
             create_users_table(connection)
 
+            
             if is_email_registered(connection, email):
                 connection.close()
                 return jsonify({'error': 'Email already registered.'}), 409
             if is_phone_registered(connection, phone):
                 connection.close()
                 return jsonify({'error': 'Phone already registered.'}), 409
-
+            
             hashed_password = hash_password(password)
 
             cursor = connection.cursor()
@@ -575,7 +567,6 @@ def add_user():
         else:
             return jsonify({'error': 'Database connection error.'}), 500
     except Exception as e:
-        print(e)
         return jsonify({'error': f'An error occurred. We are fixing this soon'}), 500
 
 
@@ -584,29 +575,29 @@ def add_user():
 def get_users():
     try:
         connection = create_connection()
-        cursor = connection.cursor(cursor_factory=RealDictCursor)
+        cursor = connection.cursor(dictionary=True)
 
-        
+        # Get the 'category' query parameter, default to 'all' if not provided
         category = request.args.get('category', 'all')
 
-        
+        # Get the 'searchstring' query parameter, default to an empty string if not provided
         search_string = request.args.get('searchstring', '')
 
         page = int(request.args.get('page', 1))
-        limit = 6
+        limit = 6  # Number of users per page
 
-        
+        # Calculate the start index based on the page number
         start_idx = (page - 1) * limit
 
         if category == 'all':
-            
+            # Fetch all users with pagination and search string filter
             cursor.execute(
-                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE name LIKE %s OR email LIKE %s OR phone LIKE %s LIMIT %s OFFSET %s',
+                'SELECT id, name, email, phone, CONCAT(UCASE(LEFT(role, 1)), LCASE(SUBSTRING(role, 2))) AS role FROM users WHERE name LIKE %s OR email LIKE %s OR phone LIKE %s LIMIT %s OFFSET %s',
                 (f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
         else:
             # Fetch users by category with pagination and search string filter
             cursor.execute(
-                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE role = %s AND (name LIKE %s OR email LIKE %s OR phone LIKE %s) LIMIT %s OFFSET %s',
+                'SELECT id, name, email, phone, CONCAT(UCASE(LEFT(role, 1)), LCASE(SUBSTRING(role, 2))) AS role FROM users WHERE role = %s AND (name LIKE %s OR email LIKE %s OR phone LIKE %s) LIMIT %s OFFSET %s',
                 (category, f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
 
         users = cursor.fetchall()
@@ -739,9 +730,9 @@ def get_user_category_data():
             # Query to get the number of each user category
             query = '''
                 SELECT
-                    SUM(CASE WHEN LOWER(role) = 'administrator' THEN 1 ELSE 0 END) AS administrators,
-                    SUM(CASE WHEN LOWER(role) = 'staff' THEN 1 ELSE 0 END) AS staff,
-                    SUM(CASE WHEN LOWER(role) = 'operator' THEN 1 ELSE 0 END) AS operators
+                    SUM(CASE WHEN role = 'Administrator' THEN 1 ELSE 0 END) AS administrators,
+                    SUM(CASE WHEN role = 'Staff' THEN 1 ELSE 0 END) AS staff,
+                    SUM(CASE WHEN role = 'Operator' THEN 1 ELSE 0 END) AS operators
                 FROM users
             '''
             cursor.execute(query)
@@ -758,13 +749,10 @@ def get_user_category_data():
                 'operators': result[2]
             }
 
-            print(user_category_data)
-
             return jsonify(user_category_data), 200
         else:
             return jsonify({'error': 'Database connection error.'}), 200
     except Exception as e:
-        print(e)
         return jsonify({'error': 'An error occurred. We are fixing this soon.'}), 200
 
 @app.route('/zimamoto/fire-reports', methods=['GET'])
@@ -782,20 +770,20 @@ def get_fire_reports():
         if time_range == '1 year':
             cursor.execute("""
                 SELECT
-                    TO_CHAR(timeStamp, 'YYYY-MM') AS month,
+                    DATE_FORMAT(timeStamp, '%Y-%m') AS month,
                     COUNT(*) AS count
                 FROM fire_reports
-                WHERE timeStamp >= NOW() - INTERVAL '11 months'
+                WHERE timeStamp >= DATE_SUB(NOW(), INTERVAL 11 MONTH)
                 GROUP BY month
                 ORDER BY month
             """)
         elif time_range == '1 week':
             cursor.execute("""
                 SELECT
-                    TO_CHAR(timeStamp, 'YYYY-MM-DD') AS day,
+                    DATE_FORMAT(timeStamp, '%Y-%m-%d') AS day,
                     COUNT(*) AS count
                 FROM fire_reports
-                WHERE timeStamp >= NOW() - INTERVAL '6 days'
+                WHERE timeStamp >= DATE_SUB(NOW(), INTERVAL 6 DAY)
                 GROUP BY day
                 ORDER BY day
             """)
@@ -803,7 +791,7 @@ def get_fire_reports():
             return jsonify({'error': 'Invalid time range'}), 400
         rows = cursor.fetchall()
 
-        
+        # Format the data into labels and values
         for row in rows:
             if time_range == '1 year':
                 # For 1 year range, use month names as labels
@@ -825,7 +813,6 @@ def get_fire_reports():
 
         return jsonify(aggregated_data), 200
     except Exception as e:
-        print(e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -847,11 +834,11 @@ def create_brigades_table(connection):
         cursor = connection.cursor()
         create_table_query = """
             CREATE TABLE IF NOT EXISTS brigades (
-                Brigadeid SERIAL PRIMARY KEY,
-                Operatoremail VARCHAR(255) NOT NULL,
+                BrigadeID INT AUTO_INCREMENT PRIMARY KEY,
+                OperatorEmail VARCHAR(255) NOT NULL,
                 Latitude FLOAT DEFAULT 0.0,
                 Longitude FLOAT DEFAULT 0.0,
-                Locationaddress VARCHAR(255),  -- New column for location address
+                LocationAddress VARCHAR(255),  -- New column for location address
                 Status VARCHAR(50) DEFAULT 'active',
                 Availability VARCHAR(50) DEFAULT 'free',
                 FOREIGN KEY (OperatorEmail) REFERENCES users(email) ON DELETE CASCADE
@@ -927,8 +914,7 @@ def add_brigade():
 def get_brigades():
     try:
         connection = create_connection()
-        cursor = connection.cursor(cursor_factory=RealDictCursor)
-
+        cursor = connection.cursor(dictionary=True)
         category = request.args.get('category', 'all')
         search_string = request.args.get('searchstring', '')
 
@@ -938,12 +924,13 @@ def get_brigades():
         start_idx = (page - 1) * limit
 
         if category == 'all':
+            # Fetch all brigades with pagination and search string filter
             cursor.execute(
-                "SELECT Brigadeid, Operatoremail, Latitude, Longitude, Locationaddress, Status, Availability FROM brigades WHERE Operatoremail LIKE %s OR Status LIKE %s OR Availability LIKE %s LIMIT %s OFFSET %s",
+                'SELECT BrigadeID, OperatorEmail, Latitude, Longitude, LocationAddress, Status, Availability FROM brigades WHERE OperatorEmail LIKE %s OR Status LIKE %s OR Availability LIKE %s LIMIT %s OFFSET %s',
                 (f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
         else:
             cursor.execute(
-                'SELECT Brigadeid, Operatoremail, Latitude, Longitude, Locationaddress, Status, Availability FROM brigades WHERE (Status = %s OR Availability = %s) AND (Operatoremail LIKE %s OR Status LIKE %s OR Availability LIKE %s) LIMIT %s OFFSET %s',
+                'SELECT BrigadeID, OperatorEmail, Latitude, Longitude, LocationAddress, Status, Availability FROM brigades WHERE (Status = %s OR Availability = %s) AND (OperatorEmail LIKE %s OR Status LIKE %s OR Availability LIKE %s) LIMIT %s OFFSET %s',
                 (category, category, f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
 
         brigades = cursor.fetchall()
@@ -954,29 +941,30 @@ def get_brigades():
         final_brigades = []
 
         for brigade in brigades:
-            BrigadeID = brigade['brigadeid']
-            OperatorEmail = brigade['operatoremail']
-            Latitude = brigade['latitude']
-            Longitude = brigade['longitude']
-            LocationAddress = brigade['locationaddress']
-            Status = brigade['status'].title()
-            Availability = brigade['availability'].title()
+            BrigadeID = brigade['BrigadeID']
+            OperatorEmail = brigade['OperatorEmail']
+            Latitude = brigade['Latitude']
+            Longitude = brigade['Longitude']
+            LocationAddress = brigade['LocationAddress']
+            Status = brigade['Status'].title()
+            Availability = brigade['Availability'].title()
             Location = ''
             try:
                 Latitude = float(Latitude)
                 Longitude = float(Longitude)
                 Location = f'{Latitude:.2f}, {Longitude:.2f}'
             except ValueError as e:
-                Location = 'Invalid location'
+                location = 'Invalid location'
 
             final_brigades.append({
-                'BrigadeID': BrigadeID,  # Use 'BrigadeID' as the key
+                'BrigadeID': BrigadeID,
                 'OperatorEmail': OperatorEmail,
                 'Location': Location,
                 'LocationAddress': LocationAddress,
                 'Status': Status,
                 'Availability': Availability
             })
+
 
         return jsonify(final_brigades), 200
     except Exception as e:
@@ -1093,11 +1081,11 @@ def get_brigade_categories():
             cursor = connection.cursor()
             query = '''
                 SELECT
-                    SUM(CASE WHEN LOWER(Status) = 'active' THEN 1 ELSE 0 END) AS active,
-                    SUM(CASE WHEN LOWER(Status) = 'inactive' THEN 1 ELSE 0 END) AS inactive,
-                    SUM(CASE WHEN LOWER(Availability) = 'under maintenance' THEN 1 ELSE 0 END) AS maintenance,
-                    SUM(CASE WHEN LOWER(Availability) = 'engaged' THEN 1 ELSE 0 END) AS engaged,
-                    SUM(CASE WHEN LOWER(Availability) = 'free' THEN 1 ELSE 0 END) AS free,
+                    SUM(CASE WHEN Status = 'active' THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN Status = 'inactive' THEN 1 ELSE 0 END) AS inactive,
+                    SUM(CASE WHEN Availability = 'under maintenance' THEN 1 ELSE 0 END) AS maintenance,
+                    SUM(CASE WHEN Availability = 'engaged' THEN 1 ELSE 0 END) AS engaged,
+                    SUM(CASE WHEN Availability = 'free' THEN 1 ELSE 0 END) AS free,
                     COUNT(*) AS total
                 FROM brigades
             '''
@@ -1163,36 +1151,25 @@ def login():
         if not email or not password:
             return jsonify({'error': 'Invalid input data'}), 400
 
-        connection = create_connection()
-        if connection:
-            cursor = connection.cursor()
-            check_query = '''
-                SELECT email, role, password FROM users WHERE email = %s
-            '''
-            cursor.execute(check_query, (email,))
-            user_data = cursor.fetchone()
-            cursor.close()
-            connection.close()
+        user_data = check_user_credentials(email, password)
 
-            if user_data and verify_password(password, user_data[2]):
-                access_token = create_access_token(identity={'email': user_data[0], 'role': user_data[1]})
+        if user_data:
+            access_token = create_access_token(identity=user_data)
 
-                response_data = {
-                    'user': {'email': user_data[0], 'role': user_data[1]},
-                    'token': access_token,
-                    'message': 'Login successful'
-                }
+            response_data = {
+                'user': user_data,
+                'token': access_token,
+                'message': 'Login successful'
+            }
 
-                response = make_response(jsonify(response_data))
+            response = make_response(jsonify(response_data))
 
-                # Calculate the expiration time, e.g., 1 day from the current time
-                expiration_time = datetime.utcnow() + timedelta(days=1)
+            # Calculate the expiration time, e.g., 1 day from the current time
+            expiration_time = datetime.utcnow() + timedelta(days=1)
 
-                return response, 200
-            else:
-                return jsonify({'error': 'Invalid email or password'}), 401
+            return response, 200
         else:
-            return jsonify({'error': 'Database connection error.'}), 500
+            return jsonify({'error': 'Invalid email or password'}), 401
     except Exception as e:
         print(e)
         return jsonify({'error': 'An error occurred'}), 500
