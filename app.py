@@ -638,7 +638,7 @@ def get_user(user_id):
         else:
             return jsonify({'error': 'Database connection error'}), 200
     except Exception as e:
-        return jsonify({'error': 'An error occurred'}), 200
+        return jsonify({'error': f'An error occurred : {e}'}), 200
 
 @app.route('/update_user/<int:user_id>', methods=['PUT'])
 @jwt_required()
