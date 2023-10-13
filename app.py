@@ -588,9 +588,11 @@ def get_users():
 
         
         category = request.args.get('category', 'all')
+        category = category.lower()
 
         
         search_string = request.args.get('searchstring', '')
+        search_string = search_string.lower()
 
         page = int(request.args.get('page', 1))
         limit = 6
@@ -601,12 +603,12 @@ def get_users():
         if category == 'all':
             
             cursor.execute(
-                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE name LIKE %s OR email LIKE %s OR phone LIKE %s LIMIT %s OFFSET %s',
+                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE LOWER(name) LIKE %s OR LOWER(email) LIKE %s OR LOWER(phone) LIKE %s LIMIT %s OFFSET %s',
                 (f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
         else:
             # Fetch users by category with pagination and search string filter
             cursor.execute(
-                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE role = %s AND (name LIKE %s OR email LIKE %s OR phone LIKE %s) LIMIT %s OFFSET %s',
+                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE LOWER(role) = %s AND (LOWER(name) LIKE %s OR LOWER(emai)l LIKE %s OR LOWER(phone) LIKE %s) LIMIT %s OFFSET %s',
                 (category, f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
 
         users = cursor.fetchall()
@@ -932,19 +934,22 @@ def get_brigades():
 
         category = request.args.get('category', 'all')
         search_string = request.args.get('searchstring', '')
+        search_string = search_string.lower()
+        category = category.lower()
 
         page = int(request.args.get('page', 1))
         limit = 6
 
         start_idx = (page - 1) * limit
 
+
         if category == 'all':
             cursor.execute(
-                "SELECT Brigadeid, Operatoremail, Latitude, Longitude, Locationaddress, Status, Availability FROM brigades WHERE Operatoremail LIKE %s OR Status LIKE %s OR Availability LIKE %s LIMIT %s OFFSET %s",
+                "SELECT Brigadeid, Operatoremail, Latitude, Longitude, Locationaddress, Status, Availability FROM brigades WHERE LOWER(Operatoremail) LIKE %s OR LOWER(Status) LIKE %s OR LOWER(Availability) LIKE %s LIMIT %s OFFSET %s",
                 (f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
         else:
             cursor.execute(
-                'SELECT Brigadeid, Operatoremail, Latitude, Longitude, Locationaddress, Status, Availability FROM brigades WHERE (Status = %s OR Availability = %s) AND (Operatoremail LIKE %s OR Status LIKE %s OR Availability LIKE %s) LIMIT %s OFFSET %s',
+                'SELECT Brigadeid, Operatoremail, Latitude, Longitude, Locationaddress, Status, Availability FROM brigades WHERE (LOWER(Status) = %s OR LOWER(Availability) = %s) AND (LOWER(Operatoremail) LIKE %s OR LOWER(Status) LIKE %s OR LOWER(Availability) LIKE %s) LIMIT %s OFFSET %s',
                 (category, category, f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
 
         brigades = cursor.fetchall()
@@ -971,7 +976,7 @@ def get_brigades():
                 Location = 'Invalid location'
 
             final_brigades.append({
-                'BrigadeID': BrigadeID,  # Use 'BrigadeID' as the key
+                'BrigadeID': BrigadeID,
                 'OperatorEmail': OperatorEmail,
                 'Location': Location,
                 'LocationAddress': LocationAddress,
