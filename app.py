@@ -1036,11 +1036,11 @@ def update_brigade(brigade_id):
     try:
         data = request.get_json()
 
-        operator_email = data['OperatorEmail']
-        latitude = data['Latitude']
-        longitude = data['Longitude']
-        status = data['Status']
-        availability = data['Availability']
+        operator_email = data['operatoremail']
+        latitude = data['latitude']
+        longitude = data['longitude']
+        status = data['status']
+        availability = data['availability']
 
         current_user = get_jwt_identity()
         if not(current_user['role'] == 'administrator'):
