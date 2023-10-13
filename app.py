@@ -1050,17 +1050,17 @@ def update_brigade(brigade_id):
         if connection:
             cur = connection.cursor()
             check_query = '''
-                SELECT COUNT(*) FROM users WHERE email = %s AND role = 'operator'
+                SELECT COUNT(*) FROM users WHERE email = %s AND LOWER(role) = 'operator'
             '''
             cur.execute(check_query, (operator_email,))
             count = cur.fetchone()[0]
 
             if count == 1:
-                cur.execute('SELECT * FROM brigades WHERE BrigadeID = %s', (brigade_id,))
+                cur.execute('SELECT * FROM brigades WHERE Brigadeid = %s', (brigade_id,))
                 existing_brigade = cur.fetchone()
 
                 if existing_brigade:
-                    cur.execute('SELECT BrigadeID FROM brigades WHERE OperatorEmail = %s AND BrigadeID != %s', (operator_email, brigade_id))
+                    cur.execute('SELECT Brigadeid FROM brigades WHERE Operatoremail = %s AND Brigadeid != %s', (operator_email, brigade_id))
                     duplicate_email_brigade = cur.fetchone()
 
                     if duplicate_email_brigade:
@@ -1069,7 +1069,7 @@ def update_brigade(brigade_id):
                         return jsonify({'error': 'Operator is already assigned to a brigade.'}), 409
 
                     
-                    cur.execute('UPDATE brigades SET OperatorEmail = %s, Latitude = %s, Longitude = %s, Status = %s, Availability = %s WHERE BrigadeID = %s', (operator_email, latitude, longitude, status, availability, brigade_id))
+                    cur.execute('UPDATE brigades SET Operatoremail = %s, Latitude = %s, Longitude = %s, Status = %s, Availability = %s WHERE Brigadeid = %s', (operator_email, latitude, longitude, status, availability, brigade_id))
                     connection.commit()
                     cur.close()
                     connection.close()
