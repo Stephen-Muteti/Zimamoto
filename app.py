@@ -1083,7 +1083,7 @@ def update_brigade(brigade_id):
         else:
             return jsonify({'error': 'Database connection error.'}), 500
     except Exception as e:
-        return jsonify({'error': 'An error occurred. We are fixing this soon'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 @app.route('/get_brigade_categories', methods=['GET'])
