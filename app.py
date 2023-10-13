@@ -606,9 +606,8 @@ def get_users():
                 'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE LOWER(name) LIKE %s OR LOWER(email) LIKE %s OR LOWER(phone) LIKE %s LIMIT %s OFFSET %s',
                 (f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
         else:
-            # Fetch users by category with pagination and search string filter
             cursor.execute(
-                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE LOWER(role) = %s AND (LOWER(name) LIKE %s OR LOWER(emai)l LIKE %s OR LOWER(phone) LIKE %s) LIMIT %s OFFSET %s',
+                'SELECT id, name, email, phone, CONCAT(UPPER(LEFT(role, 1)), LOWER(SUBSTRING(role, 2))) AS role FROM users WHERE LOWER(role) = %s AND (LOWER(name) LIKE %s OR LOWER(email) LIKE %s OR LOWER(phone) LIKE %s) LIMIT %s OFFSET %s',
                 (category, f'%{search_string}%', f'%{search_string}%', f'%{search_string}%', limit, start_idx))
 
         users = cursor.fetchall()
@@ -618,7 +617,7 @@ def get_users():
 
         return jsonify(users), 200
     except Exception as e:
-        return jsonify({'error': 'An error occurred. We are fixing this soon.'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 @app.route('/get_user/<int:user_id>', methods=['GET'])
