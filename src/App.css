@@ -1,0 +1,344 @@
+.user-main-container{
+  margin-left: 0px;
+}
+
+.send-fire-report-form{
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.navbar{
+  border: none;
+}
+
+.app-name{
+  margin-left: 0 10px;
+  font: sans-serif;
+  font-size: 30px;
+  letter-spacing: 1px;
+  font-weight: 700;
+/*  color: #252d37;*/
+  color: #267ed4;
+  padding: .6rem 1rem;
+  margin: 0 10px;
+}
+
+.response-div-title{
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 400;
+  font-size: 0.875rem;
+  line-height: 1.43;
+  letter-spacing: 0.01071em;
+  vertical-align: inherit;
+  padding: 16px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.align-right{
+  display: flex;
+  justify-content: right;
+}
+
+.app-name-link{
+  width: fit-content;
+}
+
+.brand-box-for-user{
+  bottom: unset;
+}
+
+.MuiSnackbar-root{
+  position:  absolute !important;
+}
+
+.brand-box-for-user{
+  height: 70px;
+}
+
+.admin-sidebar{
+  height: calc(100% - 70px);
+  margin-top: 75px;
+}
+
+.admin-menu-scroll{
+  margin-top: unset;
+}
+
+.brigade-numbers-card-container{
+  display: flex !important;
+  flex-wrap: wrap !important;
+}
+
+.submit-btn-container{
+  display: flex;
+  justify-content: center;
+}
+
+
+.display-flex-center{
+  display: flex;
+  justify-content: center;
+}
+
+.brigade-numbers-card{
+  width: calc(50% - 2.5px) !important;
+  box-sizing: border-box !important;
+}
+
+.brigade-numbers-card-container .brigade-numbers-card:nth-child(even){
+  margin-left: 5px !important;  
+}
+
+/* Progress circle container */
+.progress-circle-container {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer{
+  background: #fff;
+  left: 0px !important;
+  bottom: unset !important;
+}
+
+/* Progress circle background */
+.progress-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  animation: spin 0.5s linear infinite;
+}
+
+#sidebar-menu .metismenu .menu-item {
+  margin-left: 20px !important;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.input-validation-field{
+  color: rgb(22, 24, 35);
+  width: 200px;
+  color: #dd2121;
+  font-size: 14px;
+}
+
+.form-submission-message{
+  margin-top: 20px;
+  font-size: 16px;
+  text-align: center;
+  width: 50%;
+  transform: translateX(-50%);
+  margin-left: 50%;
+
+}
+
+.success-message {
+  color: green;
+}
+
+.form-error{
+  color: red;
+}
+
+.admin-sidebar-links svg{
+  width: 24px !important;
+  height: 24px !important;
+}
+
+#sidebar-menu ul li .active {
+  color: #383c40 !important;
+}
+
+#sidebar-menu ul li .active .nav-icon{
+  color: #383c40 !important;
+}
+
+#sidebar-menu ul li a .nav-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.page-title-right .breadcrumb i svg{
+  width: 16px !important;
+  height: 16px !important;
+  color: #495057;
+}
+
+.load-more-container{
+  justify-content: center;
+  display: flex;
+  margin-bottom: 10px;
+  margin-top: 10px !important;
+}
+
+.user-doughnut-card{
+  height: auto !important;
+}
+
+.fire-reports-wrapper{
+  display: flex;
+/*  justify-content: center;*/
+}
+
+.fire-reports-container{
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.fire-reports-chart{
+  max-height: 350px;
+}
+
+.css-rorn0c-MuiTableContainer-root{
+  overflow-x: unset !important;
+}
+
+.MuiTableContainer-root, .css-kge0eu {
+  overflow-x: unset !important;
+}
+
+.add-user-container{
+  display: flex;
+  justify-content: right;
+}
+
+.add-user-wrapper{
+  margin-bottom: 20px;
+}
+
+.select-role-container{
+  display: flex;
+  justify-content: center;
+}
+
+.add-user-link{
+  textDecoration: none;
+  display: inline-block;
+  border: none;
+}
+
+.css-pl8gqh-MuiStack-root{
+  display: flex;
+  justify-content: center;
+}
+
+.page-container-scroll {
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.user-search-container form{
+  width: 100% !important;
+  border: 1px solid #c4c4c4 !important;
+  box-shadow: none !important;
+}
+
+.users-table-top{
+  margin-bottom: 10px;
+}
+
+.home-navbar {
+  border-bottom: none ;
+}
+
+.search-users-select-cat-container{
+  display: flex !important;
+}
+
+.search-users-select-cat-container .MuiFormControl-root{
+  width: 100% !important;
+}
+
+.select-role-container .MuiFormControl-root{
+  min-width: 100% !important;
+}
+
+.add-user-password-container .MuiFormControl-root .MuiOutlinedInput-root{
+  border: none !important;
+}
+
+.add-user-password-container{
+  display: flex !important;
+}
+
+.add-user-password-container .MuiFormControl-root{
+  width: 100% !important;
+}
+
+.navbar-header .navbar-brand-box{
+  display: inline-block !important;
+  box-sizing: border-box;
+  box-shadow: none;
+  height: 70px;
+}
+
+.navbar-header .home-navbar{
+  box-sizing: border-box;
+  height: 70px;
+  padding-right: 20px;
+}
+
+.navbar-header{
+  height: auto;
+  display: flex;
+/*  justify-content: space-around;*/
+}
+
+#page-topbar {
+  left: 0px;
+}
+
+.mode-of-location .MuiTextField-root{
+  width: 100% !important;
+}
+
+.user-search-container form:hover {
+  border: 1px solid #212121 !important;
+}
+
+.add-brigade-sub-btn{
+  display: flex;
+  justify-content: center;
+}
+
+@media screen and (max-width: 1200px){
+  .page-content {
+    padding: calc(140px + 20px) calc(20px / 2) 60px calc(20px / 2);
+  }
+
+  .navbar-header .home-navbar{
+    padding-right: unset !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .page-title-box .page-title-right {
+    display:  unset !important;
+  }
+}
+
+@media screen and (max-width: 400px) and (orientation: portrait) {
+
+  .MuiFormControl-root{
+    min-width: 100px !important;
+  }
+}
