@@ -1,12 +1,8 @@
 from flask import Flask, make_response, request, jsonify
-import mysql.connector
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import math
-from mysql.connector import OperationalError
 import re
-from mysql.connector import Error
-import bcrypt
 import calendar
 import json
 from datetime import datetime, timedelta
@@ -114,8 +110,8 @@ def get_report_brigades():
             cursor.close()
             connection.close()
             return brigades
-    except OperationalError as op_err:
-        print(f"Error connecting to the database: {op_err}")
+    except Exception as e:
+        print(f"Error connecting to the database: {e}")
     return []
 
 
@@ -283,7 +279,7 @@ def receive_report():
                 RETURNING id
             ''', (name, phone_number, email, location_address, obtained_latitude, obtained_longitude))
 
-            # Fetch the last inserted ID from the result
+            
             last_inserted_id = cur.fetchone()[0]
             
             
@@ -319,8 +315,6 @@ def receive_report():
             return jsonify({'message': 'The response team is on its way!'}), 200
         else:
             return jsonify({'error': 'Server is unreachable. Try again later'}), 500
-    except OperationalError as op_err:
-        return jsonify({'error': 'Server is unreachable. Try again later'}), 500
     except Exception as e:
         print(e)
         return jsonify({'error': f'An error occurred. We are fixing this soon'}), 500
@@ -348,8 +342,6 @@ def update_brigade_availability(brigade_operator, new_availability):
             cursor.close()
             connection.close()
             notify_brigade_availability(brigade_operator, new_availability)
-    except OperationalError as op_err:
-        print(f"Error connecting to the database: {op_err}")
     except Exception as e:
         print(f"An error occurred while updating brigade availability: {e}")
 
@@ -361,7 +353,7 @@ def paginate_reports(page, limit, category):
         cur = connection.cursor()
 
         if category == 'today':
-            # Fetch records for today only
+            
             cur.execute('SELECT COUNT(*) FROM fire_reports WHERE DATE(timeStamp) = CURDATE()')
             total_reports = cur.fetchone()[0]
             total_pages = math.ceil(total_reports / limit)
@@ -373,7 +365,7 @@ def paginate_reports(page, limit, category):
                 (limit, start_idx)
             )
         elif category == 'this week':
-            # Fetch records for the past 7 days (including today)
+            
             cur.execute(
                 'SELECT COUNT(*) FROM fire_reports WHERE DATE(timeStamp) BETWEEN CURDATE() - INTERVAL 6 DAY AND CURDATE()'
             )
@@ -386,8 +378,8 @@ def paginate_reports(page, limit, category):
                 'SELECT name, phoneNumber, email, location_address, obtained_latitude, obtained_longitude, timeStamp FROM fire_reports WHERE DATE(timeStamp) BETWEEN CURDATE() - INTERVAL 6 DAY AND CURDATE() ORDER BY timeStamp DESC LIMIT %s OFFSET %s',
                 (limit, start_idx)
             )
-        else:
-            # Fetch all records
+
+        else:            
             cur.execute('SELECT COUNT(*) FROM fire_reports')
             total_reports = cur.fetchone()[0]
             total_pages = math.ceil(total_reports / limit)
@@ -444,8 +436,7 @@ def get_reports():
             'total_pages': total_pages
         }), 200
     except Exception as e:
-        print("Error:", e)
-        return jsonify({'error': 'An error occurred. We are fixing this soon.'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 def is_phone_registered(connection, phone):
@@ -515,7 +506,7 @@ def hash_password(password):
 def verify_password(password, hashed_password):
     return bcrypt.check_password_hash(hashed_password, password)
 
-# Add a new user
+
 @app.route('/adduser', methods=['POST'])
 @jwt_required()
 def add_user():
@@ -575,8 +566,7 @@ def add_user():
         else:
             return jsonify({'error': 'Database connection error.'}), 500
     except Exception as e:
-        print(e)
-        return jsonify({'error': f'An error occurred. We are fixing this soon'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 @app.route('/get_users', methods=['GET'])
@@ -733,12 +723,12 @@ def delete_user(user_id):
 @jwt_required()
 def get_user_category_data():
     try:
-        # Assuming you have a database connection and a users table
+        
         connection = create_connection()
         if connection:
             cursor = connection.cursor()
 
-            # Query to get the number of each user category
+            
             query = '''
                 SELECT
                     SUM(CASE WHEN LOWER(role) = 'administrator' THEN 1 ELSE 0 END) AS administrators,
@@ -749,18 +739,16 @@ def get_user_category_data():
             cursor.execute(query)
             result = cursor.fetchone()
 
-            # Close the cursor and connection
+            
             cursor.close()
             connection.close()
 
-            # Create a dictionary with the data
+            
             user_category_data = {
                 'administrators': result[0],
                 'staff': result[1],
                 'operators': result[2]
             }
-
-            print(user_category_data)
 
             return jsonify(user_category_data), 200
         else:
@@ -774,7 +762,7 @@ def get_user_category_data():
 def get_fire_reports():
     time_range = request.args.get('time_range')
 
-    # Create a dictionary to store the aggregated data
+    
     aggregated_data = {'labels': [], 'values': []}
 
     try:
@@ -807,14 +795,13 @@ def get_fire_reports():
 
         
         for row in rows:
-            if time_range == '1 year':
-                # For 1 year range, use month names as labels
+            if time_range == '1 year':                
                 month_and_year = row[0]
                 datetime_obj = datetime.strptime(month_and_year, "%Y-%m")
                 formatted_label = datetime_obj.strftime("%B %Y")
                 aggregated_data['labels'].append(formatted_label)
-            elif time_range == '1 week':
-                # For 1 week range, use day strings as labels
+
+            elif time_range == '1 week':                
                 day_string = row[0]
                 datetime_obj = datetime.strptime(day_string, "%Y-%m-%d")
                 formatted_label = datetime_obj.strftime("%A")
@@ -827,7 +814,6 @@ def get_fire_reports():
 
         return jsonify(aggregated_data), 200
     except Exception as e:
-        print(e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -861,7 +847,6 @@ def create_brigades_table(connection):
         """
         cursor.execute(create_table_query)
         connection.commit()
-        print("Brigades table created")
     except Error as e:
         print(f"Error creating table: {e}")
 
@@ -985,7 +970,7 @@ def get_brigades():
 
         return jsonify(final_brigades), 200
     except Exception as e:
-        return jsonify({'error': 'An error occurred. We are fixing this soon.'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 @app.route('/deletebrigade/<int:brigade_id>', methods=['DELETE'])
@@ -1008,7 +993,7 @@ def delete_brigade(brigade_id):
         else:
             return jsonify({'error': 'Database connection error.'}), 500
     except Exception as e:
-        return jsonify({'error': f'An error occurred. We are fixing this soon'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 @app.route('/get_brigade/<int:brigade_id>', methods=['GET'])
@@ -1031,7 +1016,7 @@ def get_brigade(brigade_id):
         else:
             return jsonify({'error': 'Database connection error'}), 200
     except Exception as e:
-        return jsonify({'error': 'An error occurred'}), 200
+        return jsonify({'error': f'An error occurred : {e}'}), 200
 
 
 @app.route('/zimamoto/update_brigade/<int:brigade_id>', methods=['PUT'])
@@ -1125,7 +1110,7 @@ def get_brigade_categories():
         else:
             return jsonify({'error': 'Database connection error.'}), 500
     except Exception as e:
-        return jsonify({'error': 'An error occurred. We are fixing this soon.'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 @app.route('/validate_session', methods=['GET'])
@@ -1191,9 +1176,6 @@ def login():
 
                 response = make_response(jsonify(response_data))
 
-                # Calculate the expiration time, e.g., 1 day from the current time
-                expiration_time = datetime.utcnow() + timedelta(days=1)
-
                 return response, 200
             else:
                 return jsonify({'error': 'Invalid email or password'}), 401
@@ -1201,7 +1183,7 @@ def login():
             return jsonify({'error': 'Database connection error.'}), 500
     except Exception as e:
         print(e)
-        return jsonify({'error': 'An error occurred'}), 500
+        return jsonify({'error': f'An error occurred : {e}'}), 500
 
 
 @app.route('/updateLocation',methods=['POST'])
@@ -1240,7 +1222,7 @@ def update_location():
         else:
             return jsonify({'error': 'Location is null'}), 500
     except Exception as e:
-        return jsonify({'error': 'An error occurred while updating location'}), 500
+        return jsonify({'error': f'An error occurred while updating location : {e}'}), 500
 
 
 @app.route('/update_availability', methods=['POST'])
@@ -1276,7 +1258,7 @@ def update_availability():
         else:
             return jsonify({'error': 'Database connection error'}), 500            
     except Exception as e:
-        return jsonify({'error': 'An error occurred while updating location'}), 500
+        return jsonify({'error': f'An error occurred while updating location : {e}'}), 500
 
 
 @app.route('/get_operator_availability', methods=['GET'])
@@ -1308,7 +1290,7 @@ def get_operator_availability():
         else:
             return jsonify({'error': 'Connection to the server was unsuccessful'}), 500
     except Exception as e:
-        return jsonify({'error': 'An error occurred. We are fixing this soon'}), 500
+        return jsonify({'error': f'An error occurred. We are fixing this soon : {e}'}), 500
 
 
 
@@ -1358,11 +1340,9 @@ def update_operator_status():
                 update_brigade_state(-1, 1)                
         return jsonify({'message': 'Operator status updated successfully'}), 200
     except Exception as e:
-        print(e)
-        return jsonify({'error': 'An error occurred while updating operator status'}), 500
+        return jsonify({'error': f'An error occurred while updating operator status : {e}'}), 500
 
 
 
 if __name__ == '__main__':
-
     socketio.run(app, debug=True)
